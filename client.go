@@ -3,11 +3,14 @@ package main
 import (
 	"github.com/gorilla/websocket"
 	r "gopkg.in/gorethink/gorethink.v4"
+	"log"
 )
 
 type FindHandler func(string) (Handler, bool)
 
 type Client struct {
+	id           string
+	userName     string
 	send         chan Message
 	socket       *websocket.Conn
 	findHandler  FindHandler
@@ -16,7 +19,20 @@ type Client struct {
 }
 
 func NewClient(sock *websocket.Conn, findHandler FindHandler, session *r.Session) *Client {
+	user := User{
+		Name: "Anonymous",
+	}
+	res, err := r.Table("user").Insert(user).RunWrite(session)
+	if err != nil {
+		log.Println(err.Error())
+	}
+	var id string
+	if len(res.GeneratedKeys) > 0 {
+		id = res.GeneratedKeys[0]
+	}
 	return &Client{
+		id:           id,
+		userName:     user.Name,
 		send:         make(chan Message),
 		socket:       sock,
 		findHandler:  findHandler,
@@ -68,6 +84,9 @@ func (c *Client) Close() {
 		stop <- true
 	}
 
+	r.Table("user").Get(c.id).Delete().Exec(c.session)
+
 	close(c.send)
 	c.socket.Close()
+
 }

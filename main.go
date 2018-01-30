@@ -4,6 +4,7 @@ import (
 	r "gopkg.in/gorethink/gorethink.v4"
 	"log"
 	"net/http"
+	"time"
 )
 
 type Message struct {
@@ -22,11 +23,11 @@ type User struct {
 }
 
 type ChannelMessage struct {
-	Id        string `json:"id" gorethink:"id,omitempty"`
-	ChannelId string `json:"channelId" gorethink:"channelId"`
-	Author    string `json:"author" gorethink:"author"`
-	Body      string `json:"body" gorethink:"body"`
-	CreatedAt string `json:"createdAt" gorethink:"createdAt"`
+	Id        string    `json:"id" gorethink:"id,omitempty"`
+	ChannelId string    `json:"channelId" gorethink:"channelId"`
+	Author    string    `json:"author" gorethink:"author"`
+	Body      string    `json:"body" gorethink:"body"`
+	CreatedAt time.Time `json:"createdAt" gorethink:"createdAt"`
 }
 
 func main() {
@@ -39,6 +40,8 @@ func main() {
 		log.Panic(err.Error())
 		return
 	}
+
+	r.Table("user").Delete().Exec(session)
 
 	router := NewRouter(session)
 

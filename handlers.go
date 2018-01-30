@@ -3,6 +3,7 @@ package main
 import (
 	"github.com/mitchellh/mapstructure"
 	r "gopkg.in/gorethink/gorethink.v4"
+	"time"
 )
 
 const (
@@ -34,6 +35,9 @@ func addMessage(c *Client, data interface{}) {
 		return
 	}
 
+	message.Author = c.userName
+	message.CreatedAt = time.Now()
+
 	go add(c, "message", message)
 }
 
@@ -58,13 +62,15 @@ func editUser(c *Client, data interface{}) {
 
 	go func() {
 		err = r.Table("user").
-			Get(user.Id).
+			Get(c.id).
 			Update(user).
 			Exec(c.session)
 
 		if err != nil {
 			c.send <- Message{"error", err.Error()}
 		}
+
+		c.userName = user.Name
 	}()
 }
 
@@ -143,10 +149,10 @@ func subscribeMessage(c *Client, data interface{}) {
 	}
 
 	stop := c.NewStopChannel(MessageStop)
-
 	cursor, err := r.Table("message").
-		Changes(r.ChangesOpts{IncludeInitial: true}).
+		OrderBy(r.OrderByOpts{Index: r.Desc("createdAt")}).
 		Filter(r.Row.Field("channelId").Eq(message.ChannelId)).
+		Changes(r.ChangesOpts{IncludeInitial: true}).
 		Run(c.session)
 
 	if err != nil {
