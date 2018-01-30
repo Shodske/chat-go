@@ -1,0 +1,25 @@
+version: "3"
+
+services:
+  go:
+    image: golang
+    working_dir: /go/src/github.com/Shodske/chat-go
+    ports:
+      - "4000:3000"
+    volumes:
+      - godata:/go
+      - .:/go/src/github.com/Shodske/chat-go
+    command: gin
+
+  rethinkdb:
+    image: rethinkdb
+    volumes:
+      - rethinkdata:/go
+    ports:
+      - "8080:8080"
+
+volumes:
+  godata:
+    driver: local
+  rethinkdata:
+    driver: local
